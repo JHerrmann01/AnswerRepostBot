@@ -47,10 +47,27 @@ def compareTitles(str1, str2):
     return 100 * equalPercentage
 
 #Initializing the reddit/subreddit
-def init():
+def init(idFilename):
     reddit = praw.Reddit('bot1')
     askreddit = reddit.subreddit("askreddit")
-    return reddit, askreddit
+
+    #If the ANSWERED_POST_IDS_FILE is not there, create it
+    if(not os.path.isfile(idFilename)):
+        f = open(idFilename, "w+")
+        f.close()
+
+    #Open the file, grab the contents and parse it making an array of the postID's we already visited
+    f = open(idFilename, "r")
+    fileContents = f.read()
+    if(fileContents == ""):
+        answeredPosts = []
+    else:
+        #Removing the last \n at the end of the string
+        fileContents = fileContents[0:len(fileContents)-1]
+        answeredPosts = fileContents.split("\n")
+    f.close()
+    
+    return reddit, askreddit, answeredPosts
 
 #Getting the most recents posts in the "new" section for AskReddit
 def getRecentPosts(numPosts, answeredPosts, isPrinting):
@@ -134,6 +151,8 @@ def getPreviousComments(similarPosts, redditInstance, isPrinting):
             for word in BANNED_WORDS:
                 if(word.lower() in rootComment.body.lower().split(" ")):
                     isValidComment = False
+            if(rootComment.body.lower() == "[deleted]"):
+                isValidComment = False
             #The comment doesn't contain anything inappropriate
             if(isValidComment):
                 #Appending the URL of the post we want to comment on and the first comment to the commentsToPost array
@@ -178,30 +197,14 @@ if(__name__ == '__main__'):
     MINUTES_OF_DELAY = 10
     ANSWERED_POST_IDS_FILENAME = "AnsweredRepostsIDList.txt"
     
-
-    #If the ANSWERED_POST_IDS_FILE is not there, create it
-    if(not os.path.isfile(ANSWERED_POST_IDS_FILENAME)):
-        f = open(ANSWERED_POST_IDS_FILENAME, "w+")
-        f.close()
-
-    #Open the file, grab the contents and parse it making an array of the postID's we already visited
-    f = open(ANSWERED_POST_IDS_FILENAME, "r")
-    fileContents = f.read()
-    if(fileContents == ""):
-        answeredPosts = []
-    else:
-        fileContents = fileContents[0:len(fileContents)-1]
-        answeredPosts = fileContents.split("\n")
-    f.close()
-    
-    reddit, askreddit = init()
+    reddit, askreddit, answeredPosts = init(ANSWERED_POST_IDS_FILENAME)
     delay()
+    
     while(True):
         try:
-            print("Answered Post IDS: " + str(answeredPosts) + " Number Of Posts: " + str(len(answeredPosts)))
             recentPosts = getRecentPosts(NUMBER_OF_POSTS_TO_CHECK, answeredPosts, True)
             delay()
-            similarPosts = searchPreviousPosts(recentPosts, NUMBER_OF_POSTS_TO_SEARCH, True)
+            similarPosts = searchPreviousPosts(recentPosts, NUMBER_OF_POSTS_TO_SEARCH, False)
             delay()
             commentsToPost = getPreviousComments(similarPosts, reddit, False)
             delay()
@@ -210,3 +213,4 @@ if(__name__ == '__main__'):
         except Exception as e:
             print(str(e))
             time.sleep(600)
+    
