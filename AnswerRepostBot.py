@@ -7,7 +7,7 @@ import re
 import os
 from pathlib import Path
 
-BANNED_WORDS = ["abused","abuse","abducted","drugs", "drug", "salvia","opiods","ecstasy","molly","ketamine","lsd","psilocybin", "weed", "marijuana", "pot", "cocaine", "rape","molested","raped", "heroin", "anal","anus","blowjob","blow job","bollock","bollok","boner","bugger","bum","buttplug","clitoris","cock","coon","cunt","dick","dildo","dyke","fag","feck","fellate","fellatio","felching","homo","jizz","knobend","knob end","labia","muff","nigger","nigga","penis","piss","poop","prick","pube","pussy","queer","scrotum","sex","s hit","sh1t","slut","smegma","spunk","tit","tosser","twat","vagina","wank","whore"]
+BANNED_WORDS = ["bot", "moderator", "abused","abuse","abducted","drugs", "drug", "salvia","opiods","ecstasy","molly","ketamine","lsd","psilocybin", "weed", "marijuana", "pot", "cocaine", "rape","molested","raped", "heroin", "anal","anus","blowjob","blow job","bollock","bollok","boner","bugger","bum","buttplug","clitoris","cock","coon","cunt","dick","dildo","dyke","fag","feck","fellate","fellatio","felching","homo","jizz","knobend","knob end","labia","muff","nigger","nigga","penis","piss","poop","prick","pube","pussy","queer","scrotum","sex","s hit","sh1t","slut","smegma","spunk","tit","tosser","twat","vagina","wank","whore"]
 
 def compareTitles(str1, str2):
     str1 = str1.lower()
