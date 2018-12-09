@@ -4,6 +4,8 @@
 import praw
 import time
 import re
+import os
+from pathlib import Path
 
 BANNED_WORDS = ["abused","abuse","abducted","drugs", "drug", "salvia","opiods","ecstasy","molly","ketamine","lsd","psilocybin", "weed", "marijuana", "pot", "cocaine", "rape","molested","raped", "heroin", "anal","anus","blowjob","blow job","bollock","bollok","boner","bugger","bum","buttplug","clitoris","cock","coon","cunt","dick","dildo","dyke","fag","feck","fellate","fellatio","felching","homo","jizz","knobend","knob end","labia","muff","nigger","nigga","penis","piss","poop","prick","pube","pussy","queer","scrotum","sex","s hit","sh1t","slut","smegma","spunk","tit","tosser","twat","vagina","wank","whore"]
 
@@ -51,11 +53,12 @@ def init():
     return reddit, askreddit
 
 #Getting the most recents posts in the "new" section for AskReddit
-def getRecentPosts(numPosts, isPrinting):
+def getRecentPosts(numPosts, answeredPosts, isPrinting):
     posts = []
     #Getting all the "new" submissions and adding them to the posts array
     for submission in askreddit.new(limit=numPosts):
-        posts.append([submission.title, submission.url])
+        if(str(submission.id) not in answeredPosts):
+            posts.append([submission.title, submission.url])
     if(isPrinting):
         print("All recent posts in '/r/AskReddit'")
         print()
@@ -144,7 +147,7 @@ def getPreviousComments(similarPosts, redditInstance, isPrinting):
                 break
     return commentsToPost
 
-def postComments(commentsToPost, isPrinting, delayTime):
+def postComments(commentsToPost, isPrinting, delayTime, idFile, answeredPosts):
     #Traversing through the list of comments and URLs and posting the respective
     #comment on each post, then waiting 10 minutes
     for comment in commentsToPost:
@@ -156,9 +159,14 @@ def postComments(commentsToPost, isPrinting, delayTime):
         originalPost = reddit.submission(url = comment[0])
         #Replying to that reddit post
         originalPost.reply(comment[1])
+        f = open(idFile, "a")
+        f.write(originalPost.id + "\n")
+        answeredPosts.append(str(originalPost.id))
+        f.close()
         for x in range(0, delayTime):
             print(str(delayTime - x) + " Minutes remaining before next post.")
             time.sleep(60)
+    return answeredPosts
 
 def delay():
     time.sleep(5)
@@ -168,15 +176,37 @@ if(__name__ == '__main__'):
     NUMBER_OF_POSTS_TO_SEARCH = 60
     ACCEPTANCE_THRESHOLD = 75
     MINUTES_OF_DELAY = 10
+    ANSWERED_POST_IDS_FILENAME = "AnsweredRepostsIDList.txt"
+    
+
+    #If the ANSWERED_POST_IDS_FILE is not there, create it
+    if(not os.path.isfile(ANSWERED_POST_IDS_FILENAME)):
+        f = open(ANSWERED_POST_IDS_FILENAME, "w+")
+        f.close()
+
+    #Open the file, grab the contents and parse it making an array of the postID's we already visited
+    f = open(ANSWERED_POST_IDS_FILENAME, "r")
+    fileContents = f.read()
+    if(fileContents == ""):
+        answeredPosts = []
+    else:
+        fileContents = fileContents[0:len(fileContents)-1]
+        answeredPosts = fileContents.split("\n")
+    f.close()
     
     reddit, askreddit = init()
     delay()
     while(True):
-        recentPosts = getRecentPosts(NUMBER_OF_POSTS_TO_CHECK, True)
-        delay()
-        similarPosts = searchPreviousPosts(recentPosts, NUMBER_OF_POSTS_TO_SEARCH, True)
-        delay()
-        commentsToPost = getPreviousComments(similarPosts, reddit, False)
-        delay()
-        postComments(commentsToPost, True, MINUTES_OF_DELAY)
-        delay()    
+        try:
+            print("Answered Post IDS: " + str(answeredPosts) + " Number Of Posts: " + str(len(answeredPosts)))
+            recentPosts = getRecentPosts(NUMBER_OF_POSTS_TO_CHECK, answeredPosts, True)
+            delay()
+            similarPosts = searchPreviousPosts(recentPosts, NUMBER_OF_POSTS_TO_SEARCH, True)
+            delay()
+            commentsToPost = getPreviousComments(similarPosts, reddit, False)
+            delay()
+            answeredPosts = postComments(commentsToPost, True, MINUTES_OF_DELAY, ANSWERED_POST_IDS_FILENAME, answeredPosts)
+            delay()
+        except Exception as e:
+            print(str(e))
+            time.sleep(600)
